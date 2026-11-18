@@ -176,7 +176,7 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:3px;padding:0 2p
 <!-- Voice-over script. make_vo.py turns every line into vo/<key>.m4a -->
 <script type="application/json" id="vo-lines">
 {
-"start":"The Water Drum. Read to find out how one idea brought water to a whole school. Press Start when you are ready.",
+"start":"Today's story is called [[slnc 300]] The Water Drum. Read to find out how one idea brought water to a whole school.",
 "predict":"Look at the picture. What do you think the children will do with the rain? A. Play in the puddles. B. Collect it to use later. C. Stay inside until it stops.",
 "pred-ok":"Good guess. Keep it in mind as you read.",
 "words":"Here are four words you will meet in the story. Tap each card to hear the word and what it means.",
@@ -220,15 +220,15 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:3px;padding:0 2p
 "sum-why-2":"That did not happen in the story.",
 "reflect-right":"Before reading, you guessed the children would collect the rain to use later. You were right! Now think. Where have you seen water go to waste near you?",
 "reflect-wrong":"Before reading, you made a guess. In the story, the children collected the rain to use later. Good readers change their guess as they read. Now think. Where have you seen water go to waste near you?",
-"done-0":"Well done! You finished The Water Drum. Keep practising and you will earn stars next time.",
-"done-1":"Well done! You finished The Water Drum. You got 1 star out of 8.",
-"done-2":"Well done! You finished The Water Drum. You got 2 stars out of 8.",
-"done-3":"Well done! You finished The Water Drum. You got 3 stars out of 8.",
-"done-4":"Well done! You finished The Water Drum. You got 4 stars out of 8.",
-"done-5":"Well done! You finished The Water Drum. You got 5 stars out of 8.",
-"done-6":"Great work! You finished The Water Drum. You got 6 stars out of 8.",
-"done-7":"Great work! You finished The Water Drum. You got 7 stars out of 8.",
-"done-8":"Amazing! You finished The Water Drum and got all 8 stars."
+"done-0":"Well done! You finished [[slnc 250]] The Water Drum. Keep practising and you will earn stars next time.",
+"done-1":"Well done! You finished [[slnc 250]] The Water Drum. You got 1 star out of 8.",
+"done-2":"Well done! You finished [[slnc 250]] The Water Drum. You got 2 stars out of 8.",
+"done-3":"Well done! You finished [[slnc 250]] The Water Drum. You got 3 stars out of 8.",
+"done-4":"Well done! You finished [[slnc 250]] The Water Drum. You got 4 stars out of 8.",
+"done-5":"Well done! You finished [[slnc 250]] The Water Drum. You got 5 stars out of 8.",
+"done-6":"Great work! You finished [[slnc 250]] The Water Drum. You got 6 stars out of 8.",
+"done-7":"Great work! You finished [[slnc 250]] The Water Drum. You got 7 stars out of 8.",
+"done-8":"Amazing! You finished [[slnc 250]] The Water Drum and got all 8 stars."
 }
 </script>
 
@@ -291,7 +291,7 @@ P.paras.forEach(p=>{
       if(/^\s+$/.test(tok)){ inner+=tok; plain+=tok; return; }
       offs.push(plain.length); plain+=tok; nw.push(norm(tok));
       // weight for estimating where each word falls in the narration audio
-      tot+= tok.replace(/[^\w]/g,"").length+1.5 + (/[.!?]["”]?$/.test(tok)?6:/[,;:]["”]?$/.test(tok)?3:0);
+      tot+= tok.replace(/[^\w]/g,"").length+1.5 + (/[.!?]["”]?$/.test(tok)?9:/[,;:]["”]?$/.test(tok)?3:0);
       wCum.push(tot);
       inner+=`<span class="w" data-wi="${idx++}">${esc(tok)}</span>`; });
     html+= s.k?`<span class="tw" data-k="${s.k}">${inner}</span>`:inner; });
@@ -323,8 +323,11 @@ const MAX=P.paras.length+QUESTIONS.length+1;
 /* ================= Audio engine =================
    Recorded files in vo/ (listed in vo/manifest.json) play first.
    Anything without a file falls back to the browser's voice. */
-let MAN=new Set();
-fetch("vo/manifest.json",{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(a=>{ MAN=new Set(a); }).catch(()=>{});
+// manifest: { key: normal playback speed } — make_vo.py measures each clip so all lines are heard at a steady pace
+let MAN=new Map();
+fetch("vo/manifest.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(m=>{ MAN=new Map(Array.isArray(m)?m.map(k=>[k,1]):Object.entries(m)); }).catch(()=>{});
+const SLOW=.78;   // Slow mode = 78% of the normal pace
+const spd=key=>(MAN.get(key)||1)*(st.rate<1?SLOW:1);
 let cur=null, tick=null, ttsT=null, pendingVO=null, fbTimer=null, bTimeout=null;
 function voice(){ try{ const vs=speechSynthesis.getVoices(); return vs.find(v=>/en-IN/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang)); }catch(e){} }
 function tts(text,rate){
@@ -351,16 +354,19 @@ function stopAll(){
 }
 function markPlaying(key){ document.querySelectorAll(".mini.playing").forEach(b=>b.classList.remove("playing")); if(key) document.querySelectorAll(`.mini[data-k="${key}"]`).forEach(b=>b.classList.add("playing")); }
 // Voice-over line (respects the VO switch unless forced)
-function vo(key,force){
+const heard=new Set();   // lines that actually started playing
+function vo(key,force,then){
   if((!st.voOn&&!force)||st.listening) return;
   stopAll(); markPlaying(key);
-  if(MAN.has(key)) playFile(key,st.rate<1?.8:1,null,true);
-  else { const u=tts(VO_LINES[key],st.rate<1?.75:.95); if(u) u.onend=()=>markPlaying(null); }
+  if(MAN.has(key)){ const a=playFile(key,spd(key),then,true); a.addEventListener("playing",()=>heard.add(key)); }
+  else { const u=tts((VO_LINES[key]||"").replace(/\[\[.*?\]\]/g,""),st.rate<1?.75:.95);
+    if(u){ u.onstart=()=>heard.add(key); u.onend=()=>{ markPlaying(null); then&&then(); }; } }
 }
+let titleFirst=false;   // title line was blocked on the first page: play it before the next page's line
 // Single word or short phrase on tap
 function sayWord(text){
   stopAll(); const k="w-"+norm(text);
-  if(MAN.has(k)) playFile(k,st.rate<1?.7:1);
+  if(MAN.has(k)) playFile(k,spd(k));
   else tts(text,st.rate<1?.6:.9);
 }
 function hl(i,wi){ const ws=document.querySelectorAll(`#p${i} .w`); ws.forEach(w=>w.classList.remove("now")); if(ws[wi]) ws[wi].classList.add("now"); }
@@ -369,7 +375,7 @@ function listen(i){
   stopAll(); if(st.listening) stopMic(); st.reading=i; paintRbar();
   const p=P.paras[i], key=`para-${i}`;
   if(MAN.has(key)){
-    const a=playFile(key,st.rate<1?.72:1,()=>{ if(st.reading===i) stopAll(); });
+    const a=playFile(key,spd(key),()=>{ if(st.reading===i) stopAll(); });
     tick=setInterval(()=>{ if(!a.duration||isNaN(a.duration)) return;
       const target=(a.currentTime/a.duration)*p.wTot*1.02; let k=0; while(k<p.wCum.length-1&&p.wCum[k]<target) k++; hl(i,k); },50);
     return;
@@ -388,12 +394,12 @@ function listen(i){
   }catch(e){ fallback(); }
 }
 // Browsers block sound until the first tap; replay the blocked line then
-document.addEventListener("pointerdown",()=>{ if(pendingVO){ const k=pendingVO; pendingVO=null; setTimeout(()=>{ if(!cur) vo(k); },150); } },true);
+document.addEventListener("pointerdown",()=>{ if(pendingVO){ const k=pendingVO; pendingVO=null; setTimeout(()=>{ if(!cur&&screenKey()===k) vo(k); },150); } },true);
 
 function screenVO(){
   const id=STEPS[st.s].id;
   if(id==="start") vo("start");
-  else if(id==="predict") vo("predict");
+  else if(id==="predict"){ if(titleFirst){ titleFirst=false; vo("start",false,()=>setTimeout(()=>{ if(STEPS[st.s].id==="predict") vo("predict"); },400)); } else vo("predict"); }
   else if(id==="words") vo("words");
   else if(id==="read") vo(`read-${st.chunk}`);
   else if(id==="quiz") vo(`quiz-${st.q}`);
@@ -636,7 +642,7 @@ document.addEventListener("click",e=>{
     case "vo-toggle": st.voOn=!st.voOn; try{ localStorage.setItem("vo",st.voOn?"on":"off"); }catch(_){}
       paintHeader(); if(st.voOn) screenVO(); else stopAll(); break;
     case "replay": vo(t.dataset.k,true); break;
-    case "next": st.s++; render(); scrollTo(0,0); break;
+    case "next": if(st.s===0&&!heard.has("start")){ titleFirst=true; pendingVO=null; } st.s++; render(); scrollTo(0,0); break;
     case "pred": st.pred=i; keep(); vo("pred-ok"); break;
     case "flip": { const k=t.dataset.k; st.flipped.add(k); keep(); st.voOn?vo(`word-${k}`):sayWord(GLOSS[k].w); break; }
     case "close": st.sheet=null; renderSheet(); break;

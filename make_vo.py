@@ -37,11 +37,19 @@ lines = json.loads(re.search(r'<script type="application/json" id="vo-lines">(.*
 paras = [json.loads('"' + m + '"') for m in re.findall(r'\ben:"((?:[^"\\]|\\.)*)"', html)]
 gloss = re.findall(r'\bw:"([^"]+)"', html)
 
+def pace(text, sentence_ms, comma_ms=0):
+    """Add real pauses. The Siri voices ignore -r and speak at ~250 wpm without them."""
+    text = re.sub(r'([.!?]["”]?)\s+', rf'\1 [[slnc {sentence_ms}]] ', text)
+    text = re.sub(r':\s+', f': [[slnc {sentence_ms // 2}]] ', text)
+    if comma_ms:
+        text = re.sub(r',\s+', f', [[slnc {comma_ms}]] ', text)
+    return text
+
 items = {}  # key -> (text, words-per-minute)
 for k, t in lines.items():
-    items[k] = (t, 165)
+    items[k] = (pace(t, 450, 120), 150)
 for i, p in enumerate(paras):
-    items[f"para-{i}"] = (strip_markup(p).replace("Mr.", "Mister"), 150)
+    items[f"para-{i}"] = (pace(strip_markup(p).replace("Mr.", "Mister"), 380), 140)
     for tok in strip_markup(p).split():
         n = norm(tok)
         if n and f"w-{n}" not in items:
@@ -68,5 +76,20 @@ with tempfile.TemporaryDirectory() as tmp:
         print(f"  {key}: {text[:60]}")
 
 cache_file.write_text(json.dumps(cache, indent=1))
-(OUT / "manifest.json").write_text(json.dumps(sorted(items.keys())))
+
+# Per-clip playback speed so every line is heard at a steady, child-friendly pace.
+TARGET_WPM = {"para": 130, "line": 140}
+def duration(p):
+    out = subprocess.run(["afinfo", str(p)], capture_output=True, text=True).stdout
+    return float(re.search(r"estimated duration: ([\d.]+)", out).group(1))
+manifest = {}
+for key, (text, _) in items.items():
+    if key.startswith("w-"):
+        manifest[key] = 0.9                      # single words
+        continue
+    words = len(re.sub(r"\[\[.*?\]\]", "", text).split())
+    wpm = 60 * words / duration(OUT / f"{key}.m4a")
+    target = TARGET_WPM["para" if key.startswith("para-") else "line"]
+    manifest[key] = round(max(0.65, min(1.0, target / wpm)), 3)
+(OUT / "manifest.json").write_text(json.dumps(manifest, indent=0, sort_keys=True))
 print(f"Done. {made} recorded, {len(items)} total in vo/manifest.json")
