@@ -20,10 +20,7 @@
   --f-hi:"Noto Sans Devanagari","Nirmala UI",sans-serif;
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root{
-  --bg:#10151F; --surface:#171E2B; --ink:#E7EBF2; --muted:#98A1B3; --line:#283245;
-  --accent:#8AA3FF; --accent-soft:#1F2A4A; --good:#52C48E; --good-soft:#15301F; --bad:#F2827A; --bad-soft:#371C1B; --rec:#FF6A62;
-  --tint-cream:#211D14; --tint-blue:#132133; --on-accent:#10151F; color-scheme:dark}}
+/* Light mode only */
 
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
@@ -36,21 +33,24 @@ button:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outl
 
 /* Top bar (px, does not grow with text size) */
 .top{position:sticky;top:0;z-index:5;background:var(--bg)}
-.top .col{display:flex;align-items:center;gap:6px;height:64px}
+.top .col{display:flex;align-items:center;gap:6px;height:64px;max-width:none}
+body.story .top .col{max-width:none;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
 .icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;font-size:15px}
 .icon:hover{background:var(--line)}
 .icon:disabled{opacity:.35;cursor:default;background:none}
 .icon.off{color:var(--muted)}
 .fs{font-family:var(--f-title);font-weight:600;letter-spacing:-.02em}
-.icon.fs{display:flex;align-items:baseline;justify-content:center;gap:1px;line-height:1}
-.fs small{font-size:12px;font-weight:600}
+/* Text size: one pill with two equal halves, both labels the same size and centred */
+.fsgroup{display:inline-flex;align-items:center;height:36px;border:1.5px solid var(--line);border-radius:18px;overflow:hidden;flex:0 0 auto}
+.fsgroup .fs{width:44px;height:100%;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1}
+.fsgroup .fs:hover:not(:disabled){background:var(--line)}
+.fsgroup .fs:disabled{opacity:.35;cursor:default}
+.fsgroup .fs+.fs{border-left:1.5px solid var(--line)}
 .step{flex:1;font-size:13px;color:var(--muted);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px}
 .sep{width:1px;height:22px;background:var(--line);margin:0 2px}
-.prog{height:3px;background:var(--line)}
-.prog i{display:block;height:100%;background:var(--accent);transition:width .35s}
 
 /* Reading toolbar */
-.rbar{position:sticky;top:67px;z-index:4;background:var(--bg)}
+.rbar{position:sticky;top:64px;z-index:4;background:var(--bg)}
 .rbar .col{display:flex;align-items:center;gap:8px;padding-block:10px;flex-wrap:wrap}
 .pill{height:40px;border-radius:20px;padding:0 14px;display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--surface);font-size:14px;font-weight:500}
 .pill.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
@@ -87,7 +87,46 @@ h1{font-family:var(--f-title);font-weight:600;font-size:2.125rem;line-height:1.1
 .mini.playing{background:var(--accent);color:var(--on-accent)}
 
 /* Passage: all paragraphs together */
-#passage{display:flex;flex-direction:column;gap:1.1rem}
+#passage{display:grid;grid-template-columns:minmax(0,1fr);gap:1rem;align-items:start}
+/* Story page: the two halves sit side by side on wider screens */
+/* Story and question screens: 160px margin left and right on wide screens (smaller on narrow ones) */
+body.story .col{max-width:none;padding-left:max(20px,min(160px,8vw));padding-right:max(20px,min(160px,8vw))}
+@media (min-width:1200px){ body.story .col{padding-left:160px;padding-right:160px} }
+@media (min-width:760px){ #passage.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:3rem} }
+.w.lk{background:var(--mark);color:var(--mark-ink)}
+
+/* Split screen: story on the left (scrolls on its own), question on the right */
+body.splitmode main .col{padding-block:20px 104px}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  height:calc(100dvh - 64px - 20px - 104px - env(safe-area-inset-top,0px));min-height:420px}
+/* story pane: text column + its own narrow column for the up/down buttons, so they never cover the text */
+.pane-l{display:flex;min-height:0;border-right:1px solid var(--line)}
+.pane-scroll{flex:1;min-width:0;height:100%;overflow-y:auto;padding:.5rem 1.25rem 2rem 0;scroll-behavior:smooth}
+.pane-scroll{--ft:0px;--fb:0px;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 var(--ft),#000 calc(100% - var(--fb)),transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 var(--ft),#000 calc(100% - var(--fb)),transparent 100%)}
+.pane-scroll.fade-top{--ft:56px} .pane-scroll.fade-bottom{--fb:72px}
+.pane-scroll h2{font-family:var(--f-title);font-weight:600;font-size:1.25rem;margin:0 0 .75rem}
+.pane-scroll .para{font-size:1.0625rem;line-height:1.8}
+.pane-nav{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding:.5rem 14px 14px 4px}
+.pane-scroll{scrollbar-width:none} .pane-scroll::-webkit-scrollbar{display:none}
+.track{position:relative;flex:1;width:8px;border-radius:4px;background:var(--line);cursor:pointer;touch-action:none}
+.thumb{position:absolute;left:0;right:0;top:0;min-height:32px;border-radius:4px;background:var(--muted);cursor:grab}
+.thumb:hover,.thumb.drag{background:var(--accent)} .thumb.drag{cursor:grabbing}
+.track.none{visibility:hidden}
+.pane-nav button{width:38px;height:38px;border-radius:50%;background:var(--surface);border:1.5px solid var(--line);display:grid;place-items:center;box-shadow:0 4px 12px -6px rgba(10,20,50,.35)}
+.pane-nav button:hover{border-color:var(--accent);color:var(--accent)}
+.pane-r{min-height:0;overflow-y:auto;padding:.5rem 0 1.25rem 2rem;display:flex;flex-direction:column;gap:1.1rem}
+@media (max-width:759px){
+  .split{grid-template-columns:minmax(0,1fr);height:auto;min-height:0}
+  .pane-l{border-right:0;border-bottom:1px solid var(--line);height:44vh}
+  .pane-scroll{padding-right:0} .pane-r{padding-left:0;padding-top:1.25rem}
+  .pane-r{overflow:visible}
+}
+/* Radio-style options */
+.opt .radio{width:1.15rem;height:1.15rem;border-radius:50%;border:2px solid var(--muted);flex:0 0 auto;display:grid;place-items:center}
+.opt.right .radio{border-color:var(--good)} .opt.right .radio::after{content:"";width:.55rem;height:.55rem;border-radius:50%;background:var(--good)}
+.opt.wrong .radio{border-color:var(--bad)}
+.sec{display:flex;flex-direction:column;gap:1rem}
 .para{margin:0;font-size:1.1875rem;line-height:var(--rl,1.9)}
 .alt .para{font-family:var(--f-alt)}
 .w{border-radius:5px;padding:1px 1px;cursor:pointer;transition:background .12s,color .12s}
@@ -124,11 +163,11 @@ textarea{width:100%;min-height:7rem;border:1.5px solid var(--line);border-radius
 
 /* Bottom bar (px) */
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:linear-gradient(to top,var(--bg) 70%,transparent);padding-bottom:env(safe-area-inset-bottom,0px)}
-.bar .col{display:flex;gap:8px;align-items:center;padding-block:20px 18px}
+.bar .col{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding-block:20px 18px}
 .tool{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1.5px solid var(--line);flex:0 0 auto}
 .tool.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .tool .hi{font-family:var(--f-hi);font-size:18px;font-weight:500}
-.go{flex:1;height:52px;border-radius:26px;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:16px}
+.go{flex:0 0 auto;min-width:160px;padding:0 30px;height:52px;border-radius:26px;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:16px}
 .go:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
 
 /* Sheet */
@@ -145,22 +184,11 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:3px;padding:0 2p
 .btn2.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:40;max-width:calc(100vw - 32px)}
 
-/* Feature list */
-.fgroup{display:flex;flex-direction:column}
-.fgroup h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px;font-weight:600}
-.feat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line)}
-.feat b{font-weight:600;font-size:15px}
-.feat p{grid-column:1/-1;margin:0;font-size:14px;color:var(--muted);line-height:1.45}
-.prio{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;align-self:start;white-space:nowrap}
-.prio.must{background:var(--good-soft);color:var(--good)}
-.prio.good{background:var(--accent-soft);color:var(--accent)}
-.prio.later{background:var(--line);color:var(--muted)}
-
 .score{font-family:var(--f-title);font-size:4rem;font-weight:600;color:var(--accent);line-height:1}
 .list{display:flex;flex-direction:column}
 .list div{display:flex;justify-content:space-between;gap:12px;padding:.75rem 0;border-top:1px solid var(--line);font-size:.9375rem}
 .list div span:last-child{color:var(--muted)}
-@media (max-width:440px){ .pill .lbl{display:none} .pill{padding:0 12px} .step{display:none} .top .col{justify-content:space-between} }
+@media (max-width:440px){ .step{display:none} .top .col{justify-content:space-between} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -170,13 +198,13 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:3px;padding:0 2p
   <div class="col">
     <button class="icon" id="backBtn" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="step" id="step"></div>
-    <button class="icon fs" data-act="fs" data-v="-1" id="fsDown" aria-label="Smaller text">A<small>−</small></button>
-    <button class="icon fs" data-act="fs" data-v="1" id="fsUp" aria-label="Bigger text" style="font-size:19px">A<small>+</small></button>
+    <div class="fsgroup" role="group" aria-label="Text size">
+      <button class="fs" data-act="fs" data-v="-1" id="fsDown" aria-label="Smaller text">A−</button>
+      <button class="fs" data-act="fs" data-v="1" id="fsUp" aria-label="Bigger text">A+</button>
+    </div>
     <span class="sep"></span>
     <button class="icon" id="voBtn" data-act="vo-toggle" aria-label="Voice-over on" aria-pressed="true"></button>
-    <button class="icon" data-act="features" aria-label="Feature list" title="Feature list"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="1.6" fill="currentColor"/><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="5" cy="18" r="1.6" fill="currentColor"/><path d="M10 6h10M10 12h10M10 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   </div>
-  <div class="prog"><i id="prog"></i></div>
 </header>
 <div class="rbar" id="rbar" hidden><div class="col" id="rbarIn"></div></div>
 <main><div class="col" id="view"></div></main>
@@ -194,7 +222,7 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:3px;padding:0 2p
 "word-studied":"Studied. Looked at carefully. For example: She studied the map.",
 "word-harvesting":"Harvesting. Collecting and saving something to use later. For example: We are harvesting rainwater.",
 "word-monsoon":"Monsoon. The season of heavy rain in India. For example: The monsoon starts in June.",
-"read":"Today's story is called [[slnc 300]] The Water Drum. Tap any word to hear it. Tap a word with a dashed line to see what it means. Press Listen to hear the story, or press Read and read it out loud.",
+"read":"Today's story is called [[slnc 300]] The Water Drum. Tap any word to hear it. Tap a word with a dashed line to see what it means. Press Read aloud and read the story out loud.",
 "ra-done":"Great reading! Press Questions when you are ready.",
 "quiz-0":"Question one. Where did Meera's mother get water in summer? A. From the hand pump. B. From the river. C. From the school tap.",
 "quiz-1":"Question two. Why did Meera's mother smile when she passed the school? A. She liked the colour of the drum. B. Meera's idea made water easier to get. C. She was on her way to the river.",
@@ -229,12 +257,15 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:3px;padding:0 2p
 const P = {
   title:"The Water Drum", meta:"Grades 1–6 · 8 min read",
   goal:"Read to find out how one idea brought water to a whole school.",
+  // The story is shown in two halves. "sec" says which half a paragraph belongs to.
   paras:[
-    { en:"Every summer, the hand pump in Meera's village went dry. Her mother walked two kilometres to the river with a steel pot on her head. Meera often went with her. One afternoon, as dark clouds [[rolled in|rolled]], she watched the rain pour off the school roof and [[disappear|disappear]] into the mud. \"All that water,\" she whispered, \"and none of it is ours.\"",
+    { sec:0, en:"Every summer, the hand pump in Meera's village went dry. Her mother walked two kilometres to the river with a steel pot on her head. Meera often went with her. One afternoon, as dark clouds [[rolled in|rolled]], she watched the rain pour off the school roof and [[disappear|disappear]] into the mud. \"All that water,\" she whispered, \"and none of it is ours.\"",
       hi:"हर गर्मी में मीरा के गाँव का हैंडपंप सूख जाता था। उसकी माँ सिर पर स्टील का घड़ा रखकर दो किलोमीटर दूर नदी तक जाती थीं। मीरा अक्सर उनके साथ जाती थी। एक दोपहर, जब काले बादल घिर आए, उसने देखा कि बारिश का पानी स्कूल की छत से बहकर मिट्टी में गायब हो रहा है। \"इतना सारा पानी,\" उसने धीरे से कहा, \"और इसमें से हमारा कुछ भी नहीं।\"" },
-    { en:"The next day, Meera drew a picture for her teacher, Mr. Das. It showed a pipe running from the roof [[gutter|gutter]] into a big plastic drum. A cloth tied over the drum would [[filter|filter]] out leaves and dust. Mr. Das [[studied|studied]] the drawing for a long time. Then he smiled. \"This is called rainwater [[harvesting|harvesting]],\" he said. \"Shall we try it?\"",
-      hi:"अगले दिन मीरा ने अपने शिक्षक, दास सर, के लिए एक चित्र बनाया। उसमें छत की नाली से एक पाइप एक बड़े प्लास्टिक के ड्रम तक जा रहा था। ड्रम पर बँधा एक कपड़ा पत्तों और धूल को छान देता। दास सर बहुत देर तक चित्र को ध्यान से देखते रहे। फिर वे मुस्कुराए। \"इसे वर्षा जल संचयन कहते हैं,\" उन्होंने कहा। \"क्या हम इसे आज़माएँ?\"" },
-    { en:"The whole class helped. Ravi brought an old drum from his uncle's shop, and the older students fixed the pipe in place. When the [[monsoon|monsoon]] arrived, the drum filled up in just three days. Soon the school had water for the garden and for washing hands. Meera's mother still went to the river sometimes, but now she smiled when she passed the school.",
+    { sec:0, en:"The next day, Meera drew a picture for her teacher, Mr. Das. It showed a pipe running from the roof [[gutter|gutter]] into a big plastic drum. A cloth tied over the drum would [[filter|filter]] out leaves and dust.",
+      hi:"अगले दिन मीरा ने अपने शिक्षक, दास सर, के लिए एक चित्र बनाया। उसमें छत की नाली से एक पाइप एक बड़े प्लास्टिक के ड्रम तक जा रहा था। ड्रम पर बँधा एक कपड़ा पत्तों और धूल को छान देता।" },
+    { sec:1, en:"Mr. Das [[studied|studied]] the drawing for a long time. Then he smiled. \"This is called rainwater [[harvesting|harvesting]],\" he said. \"Shall we try it?\"",
+      hi:"दास सर बहुत देर तक चित्र को ध्यान से देखते रहे। फिर वे मुस्कुराए। \"इसे वर्षा जल संचयन कहते हैं,\" उन्होंने कहा। \"क्या हम इसे आज़माएँ?\"" },
+    { sec:1, en:"The whole class helped. Ravi brought an old drum from his uncle's shop, and the older students fixed the pipe in place. When the [[monsoon|monsoon]] arrived, the drum filled up in just three days. Soon the school had water for the garden and for washing hands. Meera's mother still went to the river sometimes, but now she smiled when she passed the school.",
       hi:"पूरी कक्षा ने मदद की। रवि अपने चाचा की दुकान से एक पुराना ड्रम लाया, और बड़े विद्यार्थियों ने पाइप को ठीक से लगाया। जब मानसून आया, तो ड्रम सिर्फ़ तीन दिनों में भर गया। जल्द ही स्कूल में बगीचे और हाथ धोने के लिए पानी हो गया। मीरा की माँ अब भी कभी-कभी नदी जाती थीं, लेकिन अब स्कूल के पास से गुज़रते हुए वे मुस्कुरा देती थीं।" }
   ]
 };
@@ -251,8 +282,8 @@ const KEYWORDS=["harvesting","gutter","filter","monsoon"];
 const PREDICT={q:"What do you think the children will do with the rain?", o:["Play in the puddles","Collect it to use later","Stay inside until it stops"]};
 const QUESTIONS=[
   {type:"mcq",skill:"Find the fact",q:"Where did Meera's mother get water in summer?",o:["From the hand pump","From the river","From the school tap"],a:1,ref:0,quote:"Her mother walked two kilometres to the river"},
-  {type:"mcq",skill:"Think and infer",q:"Why did Meera's mother smile when she passed the school?",o:["She liked the colour of the drum","Meera's idea made water easier to get","She was on her way to the river"],a:1,ref:2,quote:"Soon the school had water for the garden and for washing hands."},
-  {type:"mcq",skill:"Word meaning",q:"“Mr. Das studied the drawing.” Here, studied means…",o:["read a schoolbook","looked at carefully","copied neatly"],a:1,ref:1,quote:"Mr. Das studied the drawing for a long time."},
+  {type:"mcq",skill:"Think and infer",q:"Why did Meera's mother smile when she passed the school?",o:["She liked the colour of the drum","Meera's idea made water easier to get","She was on her way to the river"],a:1,ref:3,quote:"Soon the school had water for the garden and for washing hands."},
+  {type:"mcq",skill:"Word meaning",q:"“Mr. Das studied the drawing.” Here, studied means…",o:["read a schoolbook","looked at carefully","copied neatly"],a:1,ref:2,quote:"Mr. Das studied the drawing for a long time."},
   {type:"seq",skill:"Order of events",q:"Tap the events in the order they happened.",items:["The class set up the drum","Meera watched rain run off the roof","The drum filled in three days","Meera drew a plan for Mr. Das"],order:[1,3,0,2],ref:1,quote:"The next day, Meera drew a picture for her teacher, Mr. Das."}
 ];
 const SUMMARY={o:["Meera's mother carries a steel pot, and Ravi's uncle has a shop.","Meera sees rainwater going to waste, plans a way to collect it, and her class builds it together.","Mr. Das teaches the class about the monsoon and the river."],a:1,
@@ -260,31 +291,6 @@ const SUMMARY={o:["Meera's mother carries a steel pot, and Ravi's uncle has a sh
 const STEPS=[
   {id:"read",label:"Reading the story"},{id:"quiz",label:"After reading · Questions"},{id:"summary",label:"After reading · Sum it up"},
   {id:"reflect",label:"After reading · Think back"},{id:"done",label:"Finished"}
-];
-const FEATURES=[
-  {g:"While reading",items:[
-    ["Opens on the story","must","The app starts straight on the story. All paragraphs are shown together on one page."],
-    ["Listen","must","The story is read aloud and each word lights up yellow as it is spoken. Press again to hear it from the start."],
-    ["Slow and Normal speed","must","Changes how fast the story, the voice-over and single words are spoken."],
-    ["Read along","must","Press Read and read out loud. Each word turns green when said correctly. Skipped words get a red wavy line. Pause keeps your place."],
-    ["Tap a word to hear it","must","Any word in the story is spoken when tapped."],
-    ["Word meaning card","must","Words with a dashed line open a small card on tap with the meaning, Hindi word and a short example."],
-    ["Hindi support","good","The अ button shows each paragraph in Hindi under the English."],
-    ["Reading settings","must","The Aa button changes font (including an easy-read font), letter spacing and page colour."]]},
-  {g:"After reading",items:[
-    ["Questions by skill","must","Four questions, one at a time, each labelled with the skill it checks."],
-    ["Look back hint","must","After a wrong answer, the child can open the exact sentence that has the answer."],
-    ["Order of events","good","Tap the events in the order they happened."],
-    ["Best summary","good","Pick the sentence that tells the whole story."],
-    ["Reflection","good","Write how the story connects to your own life."],
-    ["Stars and report","good","Stars for first-try answers, a result for each skill, and how many words were read aloud clearly."]]},
-  {g:"On every page",items:[
-    ["Voice-over","must","Every instruction, question, option and feedback is spoken at a slow pace for young children. The speaker at the top turns it on or off."],
-    ["Hear it again","must","The small speaker next to each question plays it again."],
-    ["Text size","must","A− and A+ make all text smaller or bigger, in five steps."]]},
-  {g:"Planned for later",items:[
-    ["Easier and harder versions","later","The same story at two or three reading levels."],
-    ["Highlight and notes","later","Older children mark key lines and add notes."]]}
 ];
 const VO_LINES=JSON.parse(document.getElementById("vo-lines").textContent);
 
@@ -333,18 +339,14 @@ const MAX=QUESTIONS.length+1;
    Recorded files in vo/ (listed in vo/manifest.json with their playback speed) play first.
    Anything without a file falls back to the browser's voice. */
 let MAN=new Map();
-// timings: { "para-0": [start second of each word, ...] } measured by make_vo.py
-let TIM={};
 // Load the audio list before the first page, so the browser voice never starts by mistake
 const audioReady=Promise.race([
   Promise.all([
-    fetch("vo/manifest.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(m=>{ MAN=new Map(Array.isArray(m)?m.map(k=>[k,1]):Object.entries(m)); }).catch(()=>{}),
-    fetch("vo/timings.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(t=>{ TIM=t||{}; }).catch(()=>{})
+    fetch("vo/manifest.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(m=>{ MAN=new Map(Array.isArray(m)?m.map(k=>[k,1]):Object.entries(m)); }).catch(()=>{})
   ]),
   new Promise(r=>setTimeout(r,2000))
 ]);
-const SLOW=.8;   // Slow mode = 80% of the normal pace
-const spd=key=>(MAN.get(key)||1)*(st.rate<1?SLOW:1);
+const spd=key=>MAN.get(key)||1;   // every clip plays at normal speed
 let cur=null, tick=null, ttsT=null, partT=null, pendingVO=null, fbTimer=null, bTimeout=null;
 function voice(){ try{ const vs=speechSynthesis.getVoices(); return vs.find(v=>/en-IN/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang)); }catch(e){} }
 function tts(text,rate){
@@ -380,57 +382,45 @@ function vo(key,force,then){
   if((!st.voOn&&!force)||st.listening) return;
   stopAll(); markPlaying(key);
   if(MAN.has(key)){ const a=playFile(key,spd(key),then); a.addEventListener("playing",()=>heard.add(key)); }
-  else { const u=tts((VO_LINES[key]||"").replace(/\[\[.*?\]\]/g,""),st.rate<1?.6:.8);
+  else { const u=tts((VO_LINES[key]||"").replace(/\[\[.*?\]\]/g,""),.9);
     if(u){ u.onstart=()=>heard.add(key); u.onend=()=>{ markPlaying(null); then&&then(); }; } }
 }
 let titleFirst=false;
 function sayWord(text){
   stopAll(); const k="w-"+norm(text);
-  if(MAN.has(k)) playFile(k,spd(k)); else tts(text,st.rate<1?.5:.75);
-}
-function hl(gi){
-  document.querySelectorAll("#passage .w.now").forEach(w=>w.classList.remove("now"));
-  const el=document.querySelector(`#passage .w[data-gi="${gi}"]`); if(!el) return;
-  el.classList.add("now");
-  const b=el.getBoundingClientRect(); if(b.bottom>innerHeight-110||b.top<130) scrollTo({top:scrollY+b.top-innerHeight/2.6,behavior:"smooth"});
-}
-// Listen: reads the whole story, paragraph after paragraph, always from the start
-function listen(){ stopAll(); if(st.listening) stopMic(); hidePop(); st.reading=0; paintRbar(); playPart(0); }
-function playPart(i){
-  if(st.reading===null) return;
-  if(i>=P.paras.length){ stopAll(); return; }
-  st.reading=i;
-  const p=P.paras[i], key=`para-${i}`, next=()=>{ if(st.reading===i){ clearInterval(tick); partT=setTimeout(()=>playPart(i+1),450); } };
-  if(MAN.has(key)){
-    const a=playFile(key,spd(key),next), T=TIM[key];
-    let shown=-1;
-    tick=setInterval(()=>{
-      let k;
-      if(T&&T.length===p.count){   // exact: measured start time of every word
-        const t=a.currentTime; k=0; while(k<T.length-1&&T[k+1]<=t) k++;
-        if(t<T[0]-0.05) return;
-      } else {                     // fallback: estimate from word lengths
-        if(!a.duration||isNaN(a.duration)) return;
-        const target=(a.currentTime/a.duration)*p.wTot*1.02; k=0; while(k<p.count-1&&p.wCum[k]<target) k++;
-      }
-      if(k!==shown){ shown=k; hl(p.start+k); }
-    },30);
-    return;
-  }
-  let got=false;
-  const fallback=()=>{ let wi=0; hl(p.start); fbTimer=setInterval(()=>{ wi++; if(wi>=p.count){ clearInterval(fbTimer); next(); return; } hl(p.start+wi); },60000/(st.rate<1?80:110)); };
-  try{
-    if(!("speechSynthesis"in window)) return fallback();
-    speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(p.plain); const v=voice(); if(v) u.voice=v; u.lang=v?v.lang:"en-IN"; u.rate=st.rate<1?.55:.75;
-    u.onboundary=e=>{ if(e.name&&e.name!=="word")return; got=true; clearInterval(fbTimer); clearTimeout(bTimeout);
-      let wi=0; for(let k=0;k<p.offs.length;k++){ if(p.offs[k]<=e.charIndex) wi=k; else break; } hl(p.start+wi); };
-    u.onend=()=>{ if(got) next(); };
-    speechSynthesis.speak(u);
-    bTimeout=setTimeout(()=>{ if(!got&&st.reading===i) fallback(); },900);
-  }catch(e){ fallback(); }
+  if(MAN.has(k)) playFile(k,spd(k)); else tts(text,.85);
 }
 
+// Look back: highlight the sentence with the answer in the story pane and scroll to it
+function showLook(){
+  const q=QUESTIONS[st.q], p=P.paras[q.ref], at=p.plain.indexOf(q.quote), pane=$("pane"); if(at<0||!pane) return;
+  document.querySelectorAll("#passage .w.lk").forEach(w=>w.classList.remove("lk"));
+  const ws=document.querySelectorAll(`#p${q.ref} .w`); let first=null;
+  p.offs.forEach((o,k)=>{ if(o>=at&&o<at+q.quote.length&&ws[k]){ ws[k].classList.add("lk"); first=first||ws[k]; } });
+  if(first) pane.scrollTo({top:first.offsetTop-pane.offsetTop-pane.clientHeight/3,behavior:"smooth"});
+}
+// Soft fade at the top/bottom of the story pane while there is more text to scroll to
+function syncThumb(){
+  const el=$("pane"), tr=$("track"), th=$("thumb"); if(!el||!tr||!th) return;
+  const max=el.scrollHeight-el.clientHeight; tr.classList.toggle("none",max<=2); if(max<=2) return;
+  const h=Math.max(32,tr.clientHeight*el.clientHeight/el.scrollHeight);
+  th.style.height=h+"px"; th.style.top=((tr.clientHeight-h)*el.scrollTop/max)+"px";
+}
+function wireTrack(){
+  const el=$("pane"), tr=$("track"), th=$("thumb"); if(!el||!tr) return;
+  const toY=y=>{ const r=tr.getBoundingClientRect(), h=th.offsetHeight, max=el.scrollHeight-el.clientHeight;
+    el.style.scrollBehavior="auto"; el.scrollTop=Math.max(0,Math.min(1,(y-r.top-h/2)/(r.height-h)))*max; el.style.scrollBehavior=""; };
+  tr.addEventListener("pointerdown",e=>{ e.preventDefault(); tr.setPointerCapture(e.pointerId); th.classList.add("drag"); toY(e.clientY);
+    const mv=ev=>toY(ev.clientY), up=()=>{ th.classList.remove("drag"); tr.removeEventListener("pointermove",mv); tr.removeEventListener("pointerup",up); tr.removeEventListener("pointercancel",up); };
+    tr.addEventListener("pointermove",mv); tr.addEventListener("pointerup",up); tr.addEventListener("pointercancel",up); });
+  syncThumb();
+}
+addEventListener("resize",syncThumb);
+function fadeEdges(el){
+  syncThumb();
+  el.classList.toggle("fade-top",el.scrollTop>4);
+  el.classList.toggle("fade-bottom",el.scrollTop+el.clientHeight<el.scrollHeight-4);
+}
 function screenVO(){ vo(screenKey()); }
 function screenKey(){ const id=STEPS[st.s].id;
   return id==="quiz"?`quiz-${st.q}`:id==="done"?`done-${starCount()}`:id; }
@@ -479,8 +469,8 @@ let popFor=null;
 function showPop(el){
   const k=el.dataset.k, g=GLOSS[k]; if(!g) return;
   const pop=$("pop"); document.querySelectorAll(".tw.open").forEach(x=>x.classList.remove("open")); el.classList.add("open"); popFor=el;
-  pop.innerHTML=`<div class="pw"><b>${g.w}</b><button class="mini" data-act="replay" data-k="word-${k}" aria-label="Hear ${g.w}">${I.spk}</button></div>
-    <div class="pm">${g.m}</div><div class="ph">${g.hi}</div><div class="pe">“${g.ex}”</div><span class="arrow"></span>`;
+  pop.innerHTML=`<b>${g.w}</b>
+    <div class="pm">${g.m}</div><div class="pe">“${g.ex}”</div><span class="arrow"></span>`;
   pop.hidden=false; placePop();
 }
 function placePop(){
@@ -509,40 +499,55 @@ function illo(){
   <rect x="256" y="118" width="38" height="32" rx="6" style="fill:var(--accent)"/>
   <text x="275" y="141" text-anchor="middle" style="fill:var(--on-accent);font:600 19px var(--f-title)">?</text></svg>`;
 }
+// two = halves side by side (story page); otherwise one column (left pane of the split screen)
+function passageHTML(two){
+  let h=`<div id="passage" class="${two?"two":""}">`;
+  [0,1].forEach(sec=>{
+    h+=`<section class="sec">`;
+    P.paras.forEach((p,i)=>{ if(p.sec===sec) h+=`<p class="para" id="p${i}">${p.html}</p>${st.hiOn?`<div class="hibox">${p.hi}</div>`:""}`; });
+    h+=`</section>`;
+  });
+  return h+`</div>`;
+}
+const UP='<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function splitHTML(right){
+  return `<div class="split">
+    <div class="pane-l"><div class="pane-scroll" id="pane"><h2>${P.title}</h2>${passageHTML(false)}</div>
+      <div class="pane-nav"><div class="track" id="track" aria-hidden="true"><div class="thumb" id="thumb"></div></div><button data-act="pane" data-v="-1" aria-label="Scroll the story up">${UP}</button><button data-act="pane" data-v="1" aria-label="Scroll the story down" style="transform:rotate(180deg)">${UP}</button></div></div>
+    <div class="pane-r">${right}</div></div>`;
+}
+const radio='<span class="radio" aria-hidden="true"></span>';
 const V={
 read:()=>{
-  let h=`<p class="small" style="margin-bottom:-.75rem">${P.meta}</p><div class="qrow"><h1 style="flex:1;font-size:1.75rem">${P.title}</h1><button class="mini" data-act="replay" data-k="read" aria-label="Hear the instructions">${I.spk}</button></div>
-    <div id="passage" class="${st.font==="alt"?"alt":""}" style="--rl:${st.wide?2.2:1.9};${st.wide?"letter-spacing:.03em;word-spacing:.14em;":""}">`;
-  P.paras.forEach((p,i)=>{ h+=`<p class="para" id="p${i}">${p.html}</p>${st.hiOn?`<div class="hibox">${p.hi}</div>`:""}`; });
-  h+=`</div>`;
+  let h=`<h1 style="font-size:1.75rem">${P.title}</h1>`+passageHTML(true);
   const r=st.ra;
   if(r&&r.done){ const ok=r.marks.filter(x=>x==="ok").length;
     h+=`<p class="ra good">You read ${ok} of ${ALLNW.length} words clearly. <button class="link" data-act="ra-reset">Read again</button></p>`; }
   else if(r&&r.pos>0&&!st.listening) h+=`<p class="ra small">Paused at word ${r.pos+1}. Press Resume to carry on. <button class="link" data-act="ra-reset">Start over</button></p>`;
-  else if(!r) h+=`<p class="small">Tap any word to hear it. Tap a word with a dashed line to see what it means. Press Read and read out loud. Words turn green as you say them.</p>`;
+  else if(!r) h+=`<p class="small">Tap any word to hear it. Tap a word with a dashed line to see what it means. Press Read aloud and read out loud. Words turn green as you say them.</p>`;
   return h;
 },
 quiz:()=>{
   const q=QUESTIONS[st.q],a=st.qa[st.q]||{tries:0,wrong:[]};
-  let h=`<p class="small">${st.q+1} of ${QUESTIONS.length} · ${q.skill}</p>${qh(q.q,`quiz-${st.q}`)}`;
+  let h=`<p class="small">Question ${st.q+1} of ${QUESTIONS.length} · ${q.skill}</p>${qh(q.q,`quiz-${st.q}`)}`;
   if(q.type==="mcq") h+=`<div class="opts">${q.o.map((o,j)=>{const c=a.correct&&j===q.a?"right":a.wrong.includes(j)?"wrong":"";
-      return `<button class="opt ${c}" data-act="ans" data-i="${j}" ${a.correct||a.wrong.includes(j)?"disabled":""}>${o}</button>`}).join("")}</div>`;
+      return `<button class="opt ${c}" data-act="ans" data-i="${j}" ${a.correct||a.wrong.includes(j)?"disabled":""}>${radio}${o}</button>`}).join("")}</div>`;
   else h+=`<div class="opts">${q.items.map((t,j)=>{const pos=a.correct?q.order.indexOf(j):st.seq.indexOf(j);
       return `<button class="opt ${pos>-1?"set":""} ${a.correct?"right":""}" data-act="seq" data-i="${j}" ${a.correct?"disabled":""}><span class="n">${pos>-1?pos+1:""}</span>${t}</button>`}).join("")}</div>`;
   if(a.correct) h+=`<p class="note good">${a.tries===1?"Correct on the first try.":"Correct. You found it in the text."}</p>`;
-  else if(a.tries>0) h+=`<p class="note bad">Not quite. <button class="link" data-act="look">Look back at the story</button></p>`;
-  return h;
+  else if(a.tries>0) h+=`<p class="note bad">Not quite. <button class="link" data-act="look">Show me where to look</button></p>`;
+  return splitHTML(h);
 },
-summary:()=>`${qh("Which sentence tells what the whole story is about?","summary")}
+summary:()=>splitHTML(`<p class="small">Sum it up</p>${qh("Which sentence tells what the whole story is about?","summary")}
   <div class="opts">${SUMMARY.o.map((o,j)=>{const ok=st.sum===SUMMARY.a; let c=""; if(ok&&j===SUMMARY.a)c="right"; else if(st.wrongSum.includes(j))c="wrong";
-    return `<button class="opt ${c}" data-act="sum" data-i="${j}" ${ok||c?"disabled":""}>${o}</button>`}).join("")}</div>
-  ${st.sum===SUMMARY.a?`<p class="note good">Yes. It tells the problem, the idea and what happened.</p>`:st.sum!==null?`<p class="note bad">${SUMMARY.why[st.sum]}</p>`:""}`,
+    return `<button class="opt ${c}" data-act="sum" data-i="${j}" ${ok||c?"disabled":""}>${radio}${o}</button>`}).join("")}</div>
+  ${st.sum===SUMMARY.a?`<p class="note good">Yes. It tells the problem, the idea and what happened.</p>`:st.sum!==null?`<p class="note bad">${SUMMARY.why[st.sum]}</p>`:""}`),
 reflect:()=>`<div style="display:flex;flex-direction:column;gap:10px">
-    <div class="qrow"><label for="refl" class="q">Where have you seen water go to waste near you?</label><button class="mini" data-act="replay" data-k="reflect" aria-label="Hear it">${I.spk}</button></div>
+    <label for="refl" class="q">Where have you seen water go to waste near you?</label>
     <textarea id="refl" placeholder="Near my home, water is wasted when…">${esc(st.refl)}</textarea><p class="small">Optional</p></div>`,
 done:()=>{ const n=starCount(), r=st.ra, ok=r?r.marks.filter(x=>x==="ok").length:0;
   return `<div style="padding-top:5vh;display:flex;flex-direction:column;gap:6px">
-    <div class="qrow"><p class="small" style="flex:1">You finished ${P.title}</p><button class="mini" data-act="replay" data-k="done-${n}" aria-label="Hear it">${I.spk}</button></div>
+    <p class="small">You finished ${P.title}</p>
     <div class="score">${n}<span style="font-size:1.75rem;color:var(--muted)"> / ${MAX}</span></div><p class="sub">stars for first-try answers</p></div>
   <div class="list">${QUESTIONS.map((q,i)=>{const a=st.qa[i];return `<div><span>${q.skill}</span><span>${!a?"Not tried":a.tries===1?"First try":"With help"}</span></div>`}).join("")}
     <div><span>Reading aloud</span><span>${r&&r.pos>0?`${ok} of ${ALLNW.length} words clear`:"Not tried"}</span></div></div>`;
@@ -553,12 +558,7 @@ function paintRbar(){
   const on=STEPS[st.s].id==="read"; $("rbar").hidden=!on; if(!on) return;
   const r=st.ra;
   $("rbarIn").innerHTML=`
-    <button class="pill ${st.reading!==null?"on":""}" data-act="listen" aria-label="${st.reading!==null?"Stop":"Listen to the story"}">${st.reading!==null?I.stop:I.spk}<span class="lbl">${st.reading!==null?"Stop":"Listen"}</span></button>
-    <div class="seg2" role="group" aria-label="Reading speed">
-      <button class="${st.rate<1?"on":""}" data-act="rate" data-v="0.7" aria-pressed="${st.rate<1}">Slow</button>
-      <button class="${st.rate>=1?"on":""}" data-act="rate" data-v="1" aria-pressed="${st.rate>=1}">Normal</button></div>
-    <span class="spacer"></span>
-    <button class="pill ${st.listening?"rec":""}" data-act="mic" aria-label="${st.listening?"Pause reading aloud":"Read aloud"}">${st.listening?'<span class="dot"></span>':I.mic}<span class="lbl">${st.listening?"Pause":(r&&r.pos>0&&!r.done?"Resume":"Read")}</span></button>`;
+    <button class="pill ${st.listening?"rec":""}" data-act="mic" aria-label="${st.listening?"Pause reading aloud":"Read aloud"}">${st.listening?'<span class="dot"></span>':I.mic}<span class="lbl">${st.listening?"Pause":(r&&r.pos>0&&!r.done?"Resume reading aloud":"Read aloud")}</span></button>`;
 }
 function paintHeader(){
   const b=$("voBtn"); b.innerHTML=st.voOn?I.spk:I.mute; b.classList.toggle("off",!st.voOn);
@@ -568,10 +568,9 @@ function paintHeader(){
 }
 function barHTML(){
   const id=STEPS[st.s].id, go=(t,dis,act="next")=>`<button class="go" data-act="${act}" ${dis?"disabled":""}>${t}</button>`;
-  if(id==="read") return `<button class="tool" data-act="tools" aria-label="Reading settings">${I.aa}</button>
-      <button class="tool ${st.hiOn?"on":""}" data-act="hion" aria-label="Show in Hindi" aria-pressed="${st.hiOn}">${I.hi}</button>${go("Questions")}`;
-  if(id==="quiz"){ const a=st.qa[st.q]; return go(st.q<QUESTIONS.length-1?"Next":"Continue",!(a&&a.correct),"qnext"); }
-  if(id==="summary") return go("Continue",st.sum!==SUMMARY.a);
+  if(id==="read") return go("Next");
+  if(id==="quiz"){ const a=st.qa[st.q]; return go("Next",!(a&&a.correct),"qnext"); }
+  if(id==="summary") return go("Next",st.sum!==SUMMARY.a);
   if(id==="reflect") return go("Finish");
   return go("Read again",false,"restart");
 }
@@ -581,11 +580,17 @@ function render(keepMic){
   const step=STEPS[st.s];
   $("view").innerHTML=V[step.id]();
   $("bar").innerHTML=barHTML();
-  $("step").textContent=step.label;
+  $("step").textContent="";
   $("backBtn").style.visibility= st.s===0||step.id==="done"?"hidden":"visible";
   let p=st.s/(STEPS.length-1);
   if(step.id==="quiz") p=(st.s+(st.q+(st.qa[st.q]&&st.qa[st.q].correct?1:0))/QUESTIONS.length)/(STEPS.length-1);
-  $("prog").style.width=Math.round(p*100)+"%";
+  const split=step.id==="quiz"||step.id==="summary";
+  document.body.classList.toggle("story",step.id==="read"||split);
+  document.body.classList.toggle("splitmode",split);
+  const pane=$("pane");
+  if(pane){ pane.style.scrollBehavior="auto"; pane.scrollTop=st.paneY||0; pane.style.scrollBehavior="";
+    wireTrack(); fadeEdges(pane);
+    pane.addEventListener("scroll",()=>{ st.paneY=pane.scrollTop; hidePop(); fadeEdges(pane); },{passive:true}); }
   document.body.classList.toggle("t-cream",step.id==="read"&&st.tint==="cream");
   document.body.classList.toggle("t-blue",step.id==="read"&&st.tint==="blue");
   const rf=$("refl"); if(rf) rf.addEventListener("input",e=>st.refl=e.target.value);
@@ -601,17 +606,6 @@ function renderSheet(){
   if(s.type==="look"){ const q=QUESTIONS[st.q],p=P.paras[q.ref];
     h=`<p class="small">From the story</p><p style="margin:0;font-size:1.125rem;line-height:1.8">${esc(p.plain).replace(esc(q.quote),`<mark>${esc(q.quote)}</mark>`)}</p>
       <button class="btn2 pri" data-act="close">Try again</button>`;
-  } else if(s.type==="tools"){
-    const seg=(act,opts,c)=>`<div class="seg">${opts.map(([v,l,css])=>`<button class="${c===v?"on":""}" data-act="${act}" data-v="${v}" ${css?`style="${css}"`:""}>${l}</button>`).join("")}</div>`;
-    h=`<div class="srow"><span>Font</span>${seg("font",[["std","Standard"],["alt","Easy-read","font-family:var(--f-alt)"]],st.font)}</div>
-      <div class="srow"><span>Spacing</span>${seg("wide",[["0","Normal"],["1","Wide"]],st.wide?"1":"0")}</div>
-      <div class="srow"><span>Page colour</span>${seg("tint",[["none","Plain"],["cream","Cream"],["blue","Blue"]],st.tint)}</div>
-      <p class="small" style="font-size:13px">Use A− and A+ at the top to change text size.</p>
-      <button class="btn2 pri" data-act="close">Done</button>`;
-  } else if(s.type==="features"){
-    const pl={must:"Must-have",good:"Good-to-have",later:"Later"};
-    h=`<h2>Feature list</h2>`+FEATURES.map(g=>`<div class="fgroup"><h3>${g.g}</h3>${g.items.map(([n,pr,d])=>`<div class="feat"><b>${n}</b><span class="prio ${pr}">${pl[pr]}</span><p>${d}</p></div>`).join("")}</div>`).join("")+
-      `<button class="btn2 pri" data-act="close">Close</button>`;
   }
   $("sheet").innerHTML=`<div class="veil" data-act="veil"><div class="sheet" role="dialog" aria-modal="true">${h}</div></div>`;
 }
@@ -634,15 +628,11 @@ document.addEventListener("click",e=>{
       try{ localStorage.setItem("fs",st.fs); }catch(_){} paintHeader(); placePop(); scrollTo(0,y*document.body.scrollHeight); break; }
     case "vo-toggle": st.voOn=!st.voOn; try{ localStorage.setItem("vo",st.voOn?"on":"off"); }catch(_){}
       paintHeader(); if(st.voOn) vo(screenKey()); else stopAll(); break;
-    case "features": stopAll(); hidePop(); st.sheet={type:"features"}; renderSheet(); break;
     case "replay": if(t.classList.contains("playing")){ stopAll(); break; } pendingVO=null; vo(t.dataset.k,true); break;
     case "next": st.s++; render(); scrollTo(0,0); break;
     case "close": st.sheet=null; renderSheet(); break;
-    case "listen": st.reading!==null?stopAll():listen(); break;
-    case "rate": { st.rate=+v; const was=st.reading; paintRbar(); if(was!==null){ st.reading=null; stopAll(); st.reading=was; paintRbar(); playPart(was); } break; }
     case "mic": if(st.listening){ stopMic(); render(true); } else startMic(); break;
     case "ra-reset": resetRA(); break;
-    case "tools": stopAll(); st.sheet={type:"tools"}; renderSheet(); break;
     case "font": st.font=v; keep(); break;
     case "wide": st.wide=v==="1"; keep(); break;
     case "tint": st.tint=v; keep(); break;
@@ -653,10 +643,11 @@ document.addEventListener("click",e=>{
       if(st.seq.length===q.items.length){ const x=st.qa[st.q]||{tries:0,wrong:[]}; x.tries++; x.correct=st.seq.every((vv,kk)=>vv===q.order[kk]); st.qa[st.q]=x; if(!x.correct) st.seq=[];
         keep(); vo(x.correct?"seq-right":"seq-wrong"); break; }
       keep(); vo(`seqitem-${i}`,true); break; }
-    case "look": st.sheet={type:"look"}; renderSheet(); vo("look"); break;
+    case "look": showLook(); vo("look"); break;
+    case "pane": { const pn=$("pane"); if(pn) pn.scrollBy({top:(+v)*pn.clientHeight*0.6,behavior:"smooth"}); break; }
     case "qnext": st.seq=[]; if(st.q<QUESTIONS.length-1) st.q++; else st.s++; render(); scrollTo(0,0); break;
     case "sum": st.sumTries++; st.sum=i; if(i!==SUMMARY.a) st.wrongSum.push(i); keep(); vo(i===SUMMARY.a?"sum-right":`sum-why-${i}`); break;
-    case "restart": Object.assign(st,{s:0,pred:null,flipped:new Set(),hiOn:false,q:0,qa:{},seq:[],sum:null,sumTries:0,wrongSum:[],refl:"",sheet:null,ra:null}); lastScreen=null; render(); scrollTo(0,0); break;
+    case "restart": Object.assign(st,{s:0,pred:null,flipped:new Set(),hiOn:false,q:0,qa:{},seq:[],sum:null,sumTries:0,wrongSum:[],refl:"",sheet:null,ra:null,paneY:0}); lastScreen=null; render(); scrollTo(0,0); break;
   }
 });
 $("backBtn").addEventListener("click",()=>{

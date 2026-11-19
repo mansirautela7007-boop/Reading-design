@@ -68,7 +68,7 @@ items = {}  # key -> (text, pause between sentences)
 for k, t in lines.items():
     items[k] = (t, PAUSE_LINE_MS)
 for i, p in enumerate(paras):
-    items[f"para-{i}"] = (strip_markup(p).replace("Mr.", "Mister"), PAUSE_PARA_MS)
+    # (the full story is no longer recorded: the Listen button was removed)
     for tok in strip_markup(p).split():
         n = norm(tok)
         if n and f"w-{n}" not in items:
